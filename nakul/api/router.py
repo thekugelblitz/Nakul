@@ -153,7 +153,7 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
                     response = RedirectResponse(url="/", status_code=302)
                     response.set_cookie(
                         "nakul_token", token,
-                        httponly=True, max_age=3600, samesite="lax"
+                        httponly=True, max_age=3600, samesite="lax", path="/"
                     )
                     return response
 
@@ -168,7 +168,7 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
     async def logout(request: Request):
         """Logout and revoke token."""
         response = RedirectResponse(url="/login", status_code=302)
-        response.delete_cookie("nakul_token")
+        response.delete_cookie("nakul_token", path="/")
         return response
 
     @app.get("/api/me")

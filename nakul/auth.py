@@ -78,22 +78,26 @@ class AuthManager:
         Returns (token, jti) where jti is the unique token ID.
         """
         jti = secrets.token_hex(16)
-        expire = datetime.utcnow() + (
-            expires_delta or timedelta(minutes=self.access_token_expire_minutes)
-        )
+        
+        now_ts = time.time()
+        expire_minutes = expires_delta.total_seconds() / 60 if expires_delta else self.access_token_expire_minutes
+        expire_ts = now_ts + (expire_minutes * 60)
+        
+        # We still need datetime for JWT standard payload
+        expire_dt = datetime.utcfromtimestamp(expire_ts)
 
         payload = {
             "sub": username,
-            "exp": expire,
-            "iat": datetime.utcnow(),
+            "exp": expire_dt,
+            "iat": datetime.utcfromtimestamp(now_ts),
             "jti": jti,
             "type": "access",
         }
 
         token = jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
 
-        # Track active session
-        self._active_sessions[jti] = expire.timestamp()
+        # Track active session using raw timestamps
+        self._active_sessions[jti] = expire_ts
         self._cleanup_sessions()
 
         logger.info(f"Access token created for user: {username}")
