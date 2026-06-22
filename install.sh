@@ -201,9 +201,14 @@ deploy_application() {
     cp "${SCRIPT_DIR}/pyproject.toml" "${INSTALL_DIR}/"
     log_success "Application files deployed from source"
   else
-    log_error "Source files not found at ${SCRIPT_DIR}/nakul"
-    log_info "Make sure install.sh is in the Nakul project root"
-    exit 1
+    log_info "Local source not found. Downloading from GitHub..."
+    TMP_DIR=$(mktemp -d)
+    curl -sL https://github.com/thekugelblitz/Nakul/archive/refs/heads/main.tar.gz | tar -xz -C "$TMP_DIR"
+    cp -r "$TMP_DIR"/Nakul-main/nakul "${INSTALL_DIR}/"
+    cp "$TMP_DIR"/Nakul-main/requirements.txt "${INSTALL_DIR}/"
+    cp "$TMP_DIR"/Nakul-main/pyproject.toml "${INSTALL_DIR}/"
+    rm -rf "$TMP_DIR"
+    log_success "Application files deployed from GitHub"
   fi
 
   chown -R "${NAKUL_USER}:${NAKUL_USER}" "${INSTALL_DIR}"
