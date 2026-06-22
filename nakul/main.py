@@ -65,6 +65,7 @@ class NakulAgent:
         self.system_collector: SystemCollector = None
         self.service_collector: ServiceCollector = None
         self.cpanel_collector: CpanelCollector = None
+        self.db_collector: "DatabaseCollector" = None
 
         # Layer 2: Parsers
         self.parsers = {}
@@ -123,6 +124,10 @@ class NakulAgent:
 
         # cPanel collector
         self.cpanel_collector = CpanelCollector()
+
+        # Database collector
+        from nakul.collectors.database_collector import DatabaseCollector
+        self.db_collector = DatabaseCollector()
 
         # Parsers
         self._setup_parsers()
@@ -195,10 +200,14 @@ class NakulAgent:
     async def run_cycle(self) -> None:
         """Run a single monitoring cycle."""
         try:
-            # 1. Collect system metrics
+            # 1. Collect system & database metrics
             system_data = await self.system_collector.safe_collect()
+            db_data = await self.db_collector.safe_collect()
+
             if system_data:
                 snapshot = system_data[0]
+                if db_data:
+                    snapshot.update(db_data[0])
                 await self.db.insert_snapshot(snapshot)
 
                 # Generate resource alerts
@@ -252,6 +261,12 @@ class NakulAgent:
                             f"{len(correlations)} correlations, "
                             f"{len(all_incidents)} incidents"
                         )
+
+            # Run DB data cleanup
+            try:
+                await self.db.cleanup_old_data()
+            except Exception as e:
+                logger.error(f"Error during data cleanup: {e}")
 
         except Exception as e:
             logger.error(f"Monitoring cycle error: {e}", exc_info=True)

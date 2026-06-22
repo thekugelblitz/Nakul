@@ -394,6 +394,37 @@ const Nakul = {
   },
 
   /**
+   * Update existing charts with new data
+   */
+  updateResourceCharts(snapshots) {
+    if (!snapshots || snapshots.length === 0) return;
+
+    const labels = snapshots.map(s => {
+      // If we are showing days, adjust label format. But for simplicity, just use substring
+      return (s.timestamp || '').substring(11, 16);
+    });
+    const cpuData = snapshots.map(s => s.cpu_percent || 0);
+    const memData = snapshots.map(s => s.memory_percent || 0);
+    const loadData = snapshots.map(s => s.load_1 || 0);
+
+    if (this.charts.cpu) {
+      this.charts.cpu.data.labels = labels;
+      this.charts.cpu.data.datasets[0].data = cpuData;
+      this.charts.cpu.update();
+    }
+    if (this.charts.memory) {
+      this.charts.memory.data.labels = labels;
+      this.charts.memory.data.datasets[0].data = memData;
+      this.charts.memory.update();
+    }
+    if (this.charts.load) {
+      this.charts.load.data.labels = labels;
+      this.charts.load.data.datasets[0].data = loadData;
+      this.charts.load.update();
+    }
+  },
+
+  /**
    * Utility: HTML escape
    */
   escapeHtml(text) {

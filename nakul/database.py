@@ -140,7 +140,10 @@ CREATE TABLE IF NOT EXISTS snapshots (
     process_count INTEGER DEFAULT 0,
     uptime_seconds INTEGER DEFAULT 0,
     top_cpu_processes TEXT DEFAULT '[]',
-    top_memory_processes TEXT DEFAULT '[]'
+    top_memory_processes TEXT DEFAULT '[]',
+    db_queries_sec REAL DEFAULT 0,
+    db_connections INTEGER DEFAULT 0,
+    top_db_abusers TEXT DEFAULT '[]'
 );
 
 CREATE INDEX IF NOT EXISTS idx_snapshots_timestamp ON snapshots(timestamp);
@@ -223,6 +226,15 @@ class Database:
             "INSERT OR IGNORE INTO schema_version (version, applied_at) VALUES (?, ?)",
             (SCHEMA_VERSION, datetime.utcnow().isoformat())
         )
+
+        # Ensure dynamic schema migrations (add missing columns)
+        try:
+            await self.db.execute("ALTER TABLE snapshots ADD COLUMN db_queries_sec REAL DEFAULT 0;")
+            await self.db.execute("ALTER TABLE snapshots ADD COLUMN db_connections INTEGER DEFAULT 0;")
+            await self.db.execute("ALTER TABLE snapshots ADD COLUMN top_db_abusers TEXT DEFAULT '[]';")
+        except aiosqlite.OperationalError:
+            pass # Columns already exist
+
         await self.db.commit()
         logger.info(f"Database initialized at {self.db_path}")
 
@@ -679,8 +691,9 @@ class Database:
              memory_percent, swap_total_mb, swap_used_mb, swap_percent,
              disk_total_gb, disk_used_gb, disk_percent, disk_inodes_used_percent,
              load_1, load_5, load_15, network_connections, process_count,
-             uptime_seconds, top_cpu_processes, top_memory_processes)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             uptime_seconds, top_cpu_processes, top_memory_processes,
+             db_queries_sec, db_connections, top_db_abusers)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 snapshot.get("timestamp", datetime.utcnow().isoformat()),
                 snapshot.get("cpu_percent", 0),
@@ -703,6 +716,9 @@ class Database:
                 snapshot.get("uptime_seconds", 0),
                 json.dumps(snapshot.get("top_cpu_processes", [])),
                 json.dumps(snapshot.get("top_memory_processes", [])),
+                snapshot.get("db_queries_sec", 0),
+                snapshot.get("db_connections", 0),
+                json.dumps(snapshot.get("top_db_abusers", [])),
             )
         )
         await self.db.commit()
@@ -747,6 +763,77 @@ class Database:
                 except (json.JSONDecodeError, TypeError):
                     s[field] = []
         return s
+
+    async def get_downsampled_snapshots(self, hours: int) -> List[Dict[str, Any]]:
+        """Get downsampled snapshots over a given time range."""
+        since = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+        
+        # Decide grouping interval based on hours
+        if hours <= 1:
+            grouping = "%Y-%m-%d %H:%M:%S" # No grouping essentially, but we can do per minute if too many
+            grouping = "%Y-%m-%d %H:%M" # 1 min grouping
+        elif hours <= 24:
+            # 5-minute grouping (trick: minute / 5)
+            # SQLite strftime doesn't have math natively in string formatting easily, 
+            # so we just use 5 min boundaries by substringing or math
+            grouping = "strftime('%Y-%m-%d %H:', timestamp) || printf('%02d', (CAST(strftime('%M', timestamp) AS INTEGER) / 5) * 5)"
+        elif hours <= 168:
+            # 1-hour grouping
+            grouping = "strftime('%Y-%m-%d %H:00:00', timestamp)"
+        else:
+            # 6-hour grouping
+            grouping = "strftime('%Y-%m-%d ', timestamp) || printf('%02d:00:00', (CAST(strftime('%H', timestamp) AS INTEGER) / 6) * 6)"
+
+        # Use grouping variable directly if it's a function call, otherwise strftime
+        if grouping.startswith("strftime") or grouping.startswith("CAST"):
+            group_sql = grouping
+        else:
+            group_sql = f"strftime('{grouping}', timestamp)"
+
+        query = f"""
+            SELECT 
+                {group_sql} as timestamp,
+                AVG(cpu_percent) as cpu_percent,
+                AVG(memory_percent) as memory_percent,
+                AVG(disk_percent) as disk_percent,
+                AVG(load_1) as load_1,
+                AVG(db_connections) as db_connections
+            FROM snapshots
+            WHERE timestamp >= ?
+            GROUP BY {group_sql}
+            ORDER BY timestamp ASC
+        """
+        rows = await self.db.execute_fetchall(query, (since,))
+        return [dict(row) for row in rows]
+
+    async def cleanup_old_data(self) -> None:
+        """Prune old data to prevent database from hogging disk space."""
+        try:
+            # Keep snapshots for 30 days
+            await self.db.execute("DELETE FROM snapshots WHERE timestamp < ?", 
+                                 ((datetime.utcnow() - timedelta(days=30)).isoformat(),))
+            
+            # Keep raw events for 7 days
+            await self.db.execute("DELETE FROM events WHERE timestamp < ?", 
+                                 ((datetime.utcnow() - timedelta(days=7)).isoformat(),))
+            
+            # Keep incidents for 30 days
+            await self.db.execute("DELETE FROM incidents WHERE timestamp < ?", 
+                                 ((datetime.utcnow() - timedelta(days=30)).isoformat(),))
+            
+            # Keep audit logs for 90 days
+            await self.db.execute("DELETE FROM audit_log WHERE timestamp < ?", 
+                                 ((datetime.utcnow() - timedelta(days=90)).isoformat(),))
+                                 
+            await self.db.commit()
+            
+            # Vacuum occasionally (e.g. 1 in 20 chance)
+            import random
+            if random.random() < 0.05:
+                await self.db.execute("VACUUM")
+                
+        except Exception as e:
+            logger.error(f"Error during data cleanup: {e}")
 
     # =========================================================================
     # Log Offsets

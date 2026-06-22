@@ -3,6 +3,17 @@
 {% block page_title %}Resource Usage{% endblock %}
 
 {% block content %}
+<!-- Header Actions -->
+<div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+  <h2 style="margin: 0; font-size: 1.2rem;">System Resources & Database</h2>
+  <select id="time-range-select" class="btn sm" style="background: var(--surface-2); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+    <option value="1h">Last 1 Hour</option>
+    <option value="24h">Last 24 Hours</option>
+    <option value="7d">Last 7 Days</option>
+    <option value="30d">Last 30 Days</option>
+  </select>
+</div>
+
 <!-- Current Stats -->
 <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
   <div class="card stat-card primary">
@@ -25,7 +36,7 @@
   <div class="card stat-card primary">
     <div class="card-title">Load / Connections</div>
     <div class="card-value" id="load-value">{{ "%.2f" | format(snapshot.load_1 | default(0)) }}</div>
-    <div class="card-subtitle">{{ snapshot.network_connections | default(0) }} connections · {{ snapshot.process_count | default(0) }} processes</div>
+    <div class="card-subtitle">{{ snapshot.network_connections | default(0) }} network · {{ snapshot.db_connections | default(0) }} db</div>
   </div>
 </div>
 
@@ -90,14 +101,53 @@
     </div>
   </div>
 </div>
+
+<!-- Database Abusers -->
+<div class="card" style="margin-top: 24px;">
+  <div class="card-header"><h3 class="card-title">Top Database Abusers (Slow Queries)</h3></div>
+  <div class="table-container">
+    <table>
+      <thead><tr><th>User</th><th>Database</th><th>Time (s)</th><th>State</th><th>Query</th></tr></thead>
+      <tbody>
+        {% for abuser in snapshot.top_db_abusers | default([]) %}
+        <tr>
+          <td><span class="badge warning">{{ abuser.user }}</span></td>
+          <td>{{ abuser.db | default('—') }}</td>
+          <td class="mono {% if abuser.time > 5 %}text-danger{% endif %}">{{ abuser.time }}s</td>
+          <td>{{ abuser.state | default('—') }}</td>
+          <td class="truncate" style="max-width:300px;" title="{{ abuser.query }}">{{ abuser.query | default('—') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-muted" style="text-align:center;">No long-running queries detected</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const snapshots = {{ history | tojson | safe }};
+    let snapshots = {{ history | tojson | safe }};
     if (snapshots && snapshots.length > 0) {
       Nakul.initResourceCharts(snapshots);
+    }
+
+    const rangeSelect = document.getElementById('time-range-select');
+    if (rangeSelect) {
+      rangeSelect.addEventListener('change', async (e) => {
+        const range = e.target.value;
+        try {
+          const res = await fetch(`/api/snapshots?range=${range}`);
+          if (res.ok) {
+            const data = await res.json();
+            Nakul.updateResourceCharts(data.snapshots);
+          }
+        } catch (err) {
+          console.error("Failed to fetch snapshots for range:", err);
+        }
+      });
     }
   });
 </script>

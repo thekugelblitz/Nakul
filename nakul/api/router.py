@@ -415,11 +415,15 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
 
     @app.get("/api/snapshots")
     async def api_snapshots(
-        since: Optional[str] = None,
-        limit: int = Query(60, le=200),
+        range: str = Query("1h", regex="^(1h|24h|7d|30d)$"),
     ):
         if db:
-            snapshots = await db.get_snapshots(since=since, limit=limit)
+            hours = 1
+            if range == "24h": hours = 24
+            elif range == "7d": hours = 168
+            elif range == "30d": hours = 720
+            
+            snapshots = await db.get_downsampled_snapshots(hours=hours)
             return {"snapshots": snapshots}
         return {"snapshots": []}
 
