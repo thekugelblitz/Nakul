@@ -339,8 +339,6 @@ After=network.target mysqld.service
 
 [Service]
 Type=exec
-User=${NAKUL_USER}
-Group=${NAKUL_USER}
 WorkingDirectory=${INSTALL_DIR}
 Environment=NAKUL_CONFIG=${CONFIG_FILE}
 ExecStart=${VENV_DIR}/bin/python -m nakul.main --config ${CONFIG_FILE}

@@ -84,8 +84,9 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
             return RedirectResponse(url="/login", status_code=302)
 
         # Verify token
-        if auth_manager:
-            payload = auth_manager.verify_token(token)
+        auth_mgr = request.app.state.agent.auth if request.app.state.agent else None
+        if auth_mgr:
+            payload = auth_mgr.verify_token(token)
             if not payload:
                 if request.url.path.startswith("/api/"):
                     return JSONResponse({"error": "Invalid or expired token"}, status_code=401)
@@ -114,28 +115,30 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
     async def login(request: Request, username: str = Form(""), password: str = Form("")):
         """Authenticate and return token."""
         client_ip = request.client.host if request.client else "unknown"
+        auth_mgr = request.app.state.agent.auth if request.app.state.agent else None
+        database = request.app.state.agent.db if request.app.state.agent else None
 
-        if auth_manager:
+        if auth_mgr:
             # Rate limit check
-            allowed, remaining = auth_manager.check_rate_limit(client_ip)
+            allowed, remaining = auth_mgr.check_rate_limit(client_ip)
             if not allowed:
                 raise HTTPException(429, "Too many login attempts. Try again later.")
 
             # IP allowlist check
-            if not auth_manager.check_ip_allowed(client_ip):
+            if not auth_mgr.check_ip_allowed(client_ip):
                 raise HTTPException(403, "Access denied from this IP")
 
             # Verify credentials
             admin_user = config.auth.admin_username if config else "admin"
             admin_hash = config.auth.admin_password_hash if config else ""
 
-            if username == admin_user and auth_manager.verify_password(password, admin_hash):
-                token, jti = auth_manager.create_access_token(username)
-                auth_manager.record_login_attempt(client_ip, True)
+            if username == admin_user and auth_mgr.verify_password(password, admin_hash):
+                token, jti = auth_mgr.create_access_token(username)
+                auth_mgr.record_login_attempt(client_ip, True)
 
                 # Log audit
-                if db:
-                    await db.insert_audit({
+                if database:
+                    await database.insert_audit({
                         "id": str(uuid.uuid4()),
                         "user": username,
                         "action": "login",
@@ -145,7 +148,8 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
 
                 # For form submission, redirect with cookie
                 content_type = request.headers.get("content-type", "")
-                if "form" in content_type:
+                accept = request.headers.get("accept", "")
+                if "form" in content_type or "text/html" in accept:
                     response = RedirectResponse(url="/", status_code=302)
                     response.set_cookie(
                         "nakul_token", token,
@@ -155,7 +159,7 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
 
                 return {"access_token": token, "token_type": "bearer"}
             else:
-                auth_manager.record_login_attempt(client_ip, False)
+                auth_mgr.record_login_attempt(client_ip, False)
                 raise HTTPException(401, "Invalid credentials")
         else:
             return {"access_token": "dev-token", "token_type": "bearer"}

@@ -124,11 +124,12 @@ class LogCollector(BaseCollector):
         try:
             with open(self.file_path, "r", errors="replace") as f:
                 f.seek(self._offset)
-                count = 0
-
-                for line in f:
-                    if count >= self.batch_size:
-                        break
+                
+                lines_read = 0
+                while lines_read < self.batch_size:
+                    line = f.readline()
+                    if not line:
+                        break  # EOF
 
                     line = line.rstrip("\n\r")
                     if not line:
@@ -144,7 +145,7 @@ class LogCollector(BaseCollector):
                         "file_path": self.file_path,
                         "timestamp": datetime.utcnow().isoformat(),
                     })
-                    count += 1
+                    lines_read += 1
 
                 new_offset = f.tell()
 
