@@ -56,7 +56,7 @@ class NakulAgent:
 
     def __init__(self, config: NakulConfig):
         self.config = config
-        self.db: Database = None
+        self.db: Database = Database(self.config.database.path)
         self.auth: AuthManager = None
         self.running = False
 
@@ -87,7 +87,6 @@ class NakulAgent:
         logger.info(f"Nakul v{__version__} initializing...")
 
         # Database
-        self.db = Database(self.config.database.path)
         await self.db.initialize()
 
         # Auth
