@@ -429,6 +429,11 @@ def create_app(db=None, auth_manager=None, config=None, agent=None) -> FastAPI:
             return await db.get_stats()
         return {}
 
+    @app.get("/api/summary")
+    async def api_summary():
+        """Get complete summary data for the dashboard auto-refresh."""
+        return await _get_summary_data()
+
     @app.get("/api/audit")
     async def api_audit(limit: int = Query(100, le=500), offset: int = Query(0, ge=0)):
         if db:
