@@ -1,0 +1,37 @@
+# Nakul - Server Intelligence & Protection Platform
+# Core dependencies
+
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# Templating
+jinja2==3.1.5
+aiofiles==24.1.0
+
+# Configuration
+pyyaml==6.0.2
+
+# Data validation
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Database
+aiosqlite==0.20.0
+
+# Authentication
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.20
+
+# System monitoring
+psutil==6.1.1
+
+# Scheduling
+apscheduler==3.10.4
+
+# HTTP client (webhooks)
+httpx==0.28.1
+
+# Utilities
+python-dateutil==2.9.0

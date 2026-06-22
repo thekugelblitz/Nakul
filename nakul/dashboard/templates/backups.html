@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Backups{% endblock %}
+{% block page_title %}Backup Monitoring{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header"><h3 class="card-title">Backup Events</h3></div>
+  {% if events %}
+  <div class="incident-list">
+    {% for e in events %}
+    <div class="card incident-card {{ e.severity }}" style="padding:14px;">
+      <div class="incident-header">
+        <span class="badge {{ e.severity }}">{{ e.severity | upper }}</span>
+        <span class="text-muted" style="margin-left:auto;font-size:0.75rem;">{{ e.timestamp[:19] if e.timestamp else '' }}</span>
+      </div>
+      <div class="incident-summary">{{ e.message | default('Backup event') | truncate(200) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">💾</div>
+    <h3>No Backup Events</h3>
+    <p>Backup monitoring events will appear here when Backuply or backup log parsing is active. If Backuply is not installed, this section will remain empty.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

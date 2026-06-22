@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Resources{% endblock %}
+{% block page_title %}Resource Usage{% endblock %}
+
+{% block content %}
+<!-- Current Stats -->
+<div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+  <div class="card stat-card primary">
+    <div class="card-title">CPU</div>
+    <div class="card-value" id="cpu-value">{{ "%.1f" | format(snapshot.cpu_percent | default(0)) }}%</div>
+    <div class="progress-bar"><div class="progress-fill {% if snapshot.cpu_percent|default(0) > 90 %}danger{% elif snapshot.cpu_percent|default(0) > 75 %}warning{% else %}success{% endif %}" style="width:{{ snapshot.cpu_percent | default(0) }}%"></div></div>
+  </div>
+  <div class="card stat-card success">
+    <div class="card-title">Memory</div>
+    <div class="card-value" id="memory-value">{{ "%.1f" | format(snapshot.memory_percent | default(0)) }}%</div>
+    <div class="progress-bar"><div class="progress-fill {% if snapshot.memory_percent|default(0) > 90 %}danger{% elif snapshot.memory_percent|default(0) > 75 %}warning{% else %}success{% endif %}" style="width:{{ snapshot.memory_percent | default(0) }}%"></div></div>
+    <div class="card-subtitle">{{ "%.0f" | format(snapshot.memory_used_mb | default(0)) }} / {{ "%.0f" | format(snapshot.memory_total_mb | default(0)) }} MB</div>
+  </div>
+  <div class="card stat-card warning">
+    <div class="card-title">Disk</div>
+    <div class="card-value" id="disk-value">{{ "%.1f" | format(snapshot.disk_percent | default(0)) }}%</div>
+    <div class="progress-bar"><div class="progress-fill {% if snapshot.disk_percent|default(0) > 90 %}danger{% elif snapshot.disk_percent|default(0) > 75 %}warning{% else %}success{% endif %}" style="width:{{ snapshot.disk_percent | default(0) }}%"></div></div>
+    <div class="card-subtitle">{{ "%.1f" | format(snapshot.disk_used_gb | default(0)) }} / {{ "%.1f" | format(snapshot.disk_total_gb | default(0)) }} GB</div>
+  </div>
+  <div class="card stat-card primary">
+    <div class="card-title">Load / Connections</div>
+    <div class="card-value" id="load-value">{{ "%.2f" | format(snapshot.load_1 | default(0)) }}</div>
+    <div class="card-subtitle">{{ snapshot.network_connections | default(0) }} connections · {{ snapshot.process_count | default(0) }} processes</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="content-grid three-cols">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">CPU History</h3></div>
+    <div class="chart-container"><canvas id="cpu-chart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Memory History</h3></div>
+    <div class="chart-container"><canvas id="memory-chart"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Load Average History</h3></div>
+    <div class="chart-container"><canvas id="load-chart"></canvas></div>
+  </div>
+</div>
+
+<!-- Top Processes -->
+<div class="content-grid">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Top CPU Processes</h3></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>PID</th><th>User</th><th>Process</th><th>CPU %</th><th>MEM %</th></tr></thead>
+        <tbody>
+          {% for proc in snapshot.top_cpu_processes | default([]) %}
+          <tr>
+            <td class="mono">{{ proc.pid }}</td>
+            <td>{{ proc.user | default('—') }}</td>
+            <td class="truncate" style="max-width:200px;">{{ proc.name | default('—') }}</td>
+            <td class="mono">{{ "%.1f" | format(proc.cpu_percent | default(0)) }}%</td>
+            <td class="mono">{{ "%.1f" | format(proc.memory_percent | default(0)) }}%</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted" style="text-align:center;">No process data available</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Top Memory Processes</h3></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>PID</th><th>User</th><th>Process</th><th>MEM %</th><th>CPU %</th></tr></thead>
+        <tbody>
+          {% for proc in snapshot.top_memory_processes | default([]) %}
+          <tr>
+            <td class="mono">{{ proc.pid }}</td>
+            <td>{{ proc.user | default('—') }}</td>
+            <td class="truncate" style="max-width:200px;">{{ proc.name | default('—') }}</td>
+            <td class="mono">{{ "%.1f" | format(proc.memory_percent | default(0)) }}%</td>
+            <td class="mono">{{ "%.1f" | format(proc.cpu_percent | default(0)) }}%</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="text-muted" style="text-align:center;">No process data available</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const snapshots = {{ history | tojson | safe }};
+    if (snapshots && snapshots.length > 0) {
+      Nakul.initResourceCharts(snapshots);
+    }
+  });
+</script>
+{% endblock %}

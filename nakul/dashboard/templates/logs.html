@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Logs{% endblock %}
+{% block page_title %}Log Viewer{% endblock %}
+
+{% block content %}
+<div class="filters-bar">
+  <form id="log-filter-form" style="display:contents;">
+    <select name="source" class="form-select">
+      <option value="">All Sources</option>
+      <option value="web">Web / HTTP</option>
+      <option value="database">Database</option>
+      <option value="security">Security</option>
+      <option value="system">System</option>
+      <option value="cpanel">cPanel</option>
+      <option value="backup">Backup</option>
+    </select>
+    <select name="severity" class="form-select">
+      <option value="">All Severities</option>
+      <option value="critical">Critical</option>
+      <option value="warning">Warning</option>
+      <option value="info">Info</option>
+    </select>
+    <select name="category" class="form-select">
+      <option value="">All Categories</option>
+      <option value="resource">Resource</option>
+      <option value="security">Security</option>
+      <option value="web">Web</option>
+      <option value="database">Database</option>
+      <option value="backup">Backup</option>
+      <option value="auth">Auth</option>
+      <option value="malware">Malware</option>
+      <option value="system">System</option>
+    </select>
+    <input type="text" name="account" class="form-input" placeholder="Account" style="width:130px;">
+    <input type="text" name="ip_address" class="form-input" placeholder="IP Address" style="width:140px;">
+    <input type="text" name="domain" class="form-input" placeholder="Domain" style="width:150px;">
+    <button type="submit" class="btn primary">🔍 Search</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Events</h3>
+    <span class="text-muted" style="font-size:0.8rem;">Showing most recent events</span>
+  </div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Severity</th>
+          <th>Source</th>
+          <th>Category</th>
+          <th>Message</th>
+          <th>Account</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody id="logs-tbody">
+        <tr>
+          <td colspan="7" class="empty-state">
+            <div class="empty-icon">📋</div>
+            <h3>Use the filters above</h3>
+            <p>Select filters and click Search to view events.</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

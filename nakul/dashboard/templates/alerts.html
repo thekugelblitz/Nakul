@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Alerts{% endblock %}
+{% block page_title %}Live Alerts{% endblock %}
+
+{% block content %}
+<div class="stats-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+  <div class="card stat-card danger">
+    <div class="card-title">Critical</div>
+    <div class="card-value text-critical" id="alerts-critical">{{ alerts | selectattr('severity', 'equalto', 'critical') | list | length }}</div>
+  </div>
+  <div class="card stat-card warning">
+    <div class="card-title">Warning</div>
+    <div class="card-value text-warning">{{ alerts | selectattr('severity', 'equalto', 'warning') | list | length }}</div>
+  </div>
+  <div class="card stat-card primary">
+    <div class="card-title">Unacknowledged</div>
+    <div class="card-value" id="alerts-unack">{{ alerts | rejectattr('acknowledged') | list | length }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">All Alerts ({{ total }})</h3>
+  </div>
+
+  {% if alerts %}
+  <div class="incident-list">
+    {% for alert in alerts %}
+    <div class="card incident-card {{ alert.severity }}" style="padding: 16px;">
+      <div class="incident-header">
+        <span class="badge {{ alert.severity }}">
+          <span class="status-dot {% if not alert.acknowledged %}pulse{% endif %}"></span>
+          {{ alert.severity | upper }}
+        </span>
+        <span class="badge {{ alert.category | default('system') }}">{{ alert.category | default('system') }}</span>
+        {% if alert.acknowledged %}
+          <span class="badge success">✓ Acknowledged</span>
+        {% endif %}
+        <span class="text-muted" style="margin-left:auto;font-size:0.75rem;">{{ alert.timestamp[:19] if alert.timestamp else '' }}</span>
+      </div>
+
+      <div class="incident-summary">{{ alert.title | default('Alert') }}</div>
+      <p class="text-secondary" style="font-size:0.85rem;margin:8px 0;">{{ alert.message | default('') | truncate(300) }}</p>
+
+      {% if alert.evidence %}
+      <div class="evidence-block">
+        {% for ev in alert.evidence[:3] %}{{ ev }}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if alert.recommended_action %}
+      <div style="margin-top:10px;">
+        <strong class="text-muted" style="font-size:0.75rem;">RECOMMENDED ACTION:</strong>
+        <pre style="margin-top:6px;white-space:pre-wrap;font-size:0.8rem;">{{ alert.recommended_action }}</pre>
+      </div>
+      {% endif %}
+
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        {% if not alert.acknowledged %}
+        <button class="btn sm success" data-action="acknowledge" data-alert-id="{{ alert.id }}">
+          ✓ Acknowledge
+        </button>
+        {% endif %}
+        {% if alert.incident_id %}
+        <a href="/incidents/{{ alert.incident_id }}" class="btn sm">View Incident →</a>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔔</div>
+    <h3>No Active Alerts</h3>
+    <p>Everything is running smoothly. Alerts will appear here when issues are detected.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

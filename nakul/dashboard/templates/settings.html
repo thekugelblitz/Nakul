@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block page_title %}Settings & Configuration{% endblock %}
+
+{% block content %}
+<div class="content-grid">
+  <!-- Alert Rules -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Alert Rules</h3>
+      <span class="text-muted" style="font-size:0.8rem;">{{ rules | length }} rules configured</span>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Rule</th><th>Status</th><th>Severity</th><th>Categories</th></tr></thead>
+        <tbody>
+          {% for rule_id, rule in rules.items() %}
+          <tr>
+            <td>
+              <div style="font-weight:500;color:var(--text-primary);">{{ rule.name | default(rule_id) }}</div>
+              <div class="text-muted" style="font-size:0.75rem;margin-top:2px;">{{ rule_id }}</div>
+            </td>
+            <td>
+              {% if rule.enabled | default(true) %}
+                <span class="badge success">Enabled</span>
+              {% else %}
+                <span class="badge unknown">Disabled</span>
+              {% endif %}
+            </td>
+            <td><span class="badge {{ rule.severity | default('warning') }}">{{ rule.severity | default('warning') }}</span></td>
+            <td class="text-muted" style="font-size:0.75rem;">{{ rule.categories | default([]) | join(', ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Configuration Info -->
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Current Configuration</h3></div>
+
+    {% if config %}
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="card" style="padding:14px;">
+        <div class="card-title">Server</div>
+        <div class="service-detail"><span class="detail-label">Port</span><span class="detail-value mono">{{ config.server.port }}</span></div>
+        <div class="service-detail"><span class="detail-label">Log Level</span><span class="detail-value">{{ config.server.log_level }}</span></div>
+        <div class="service-detail"><span class="detail-label">Workers</span><span class="detail-value">{{ config.server.workers }}</span></div>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="card-title">Collector</div>
+        <div class="service-detail"><span class="detail-label">Scan Interval</span><span class="detail-value">{{ config.collector.scan_interval_seconds }}s</span></div>
+        <div class="service-detail"><span class="detail-label">Batch Size</span><span class="detail-value">{{ config.collector.log_batch_size }}</span></div>
+        <div class="service-detail"><span class="detail-label">Metrics Interval</span><span class="detail-value">{{ config.collector.system_metrics_interval_seconds }}s</span></div>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="card-title">Database</div>
+        <div class="service-detail"><span class="detail-label">Path</span><span class="detail-value mono truncate" style="max-width:180px;">{{ config.database.path }}</span></div>
+        <div class="service-detail"><span class="detail-label">Retention</span><span class="detail-value">{{ config.database.retention_days }} days</span></div>
+        <div class="service-detail"><span class="detail-label">WAL Mode</span><span class="detail-value">{{ 'Enabled' if config.database.wal_mode else 'Disabled' }}</span></div>
+      </div>
+
+      <div class="card" style="padding:14px;">
+        <div class="card-title">Notifications</div>
+        <div class="service-detail"><span class="detail-label">Dashboard</span><span class="badge {% if config.notifications.dashboard_enabled %}success{% else %}unknown{% endif %}">{{ 'On' if config.notifications.dashboard_enabled else 'Off' }}</span></div>
+        <div class="service-detail"><span class="detail-label">Email</span><span class="badge {% if config.notifications.email_enabled %}success{% else %}unknown{% endif %}">{{ 'On' if config.notifications.email_enabled else 'Off' }}</span></div>
+        <div class="service-detail"><span class="detail-label">Webhook</span><span class="badge {% if config.notifications.webhook_enabled %}success{% else %}unknown{% endif %}">{{ 'On' if config.notifications.webhook_enabled else 'Off' }}</span></div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted">Configuration not loaded.</p>
+    {% endif %}
+
+    <div class="alert-banner info" style="margin-top:16px;">
+      <span class="alert-icon">ℹ️</span>
+      <span>To modify settings, edit <code>/etc/nakul/nakul.yaml</code> and restart the service.</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

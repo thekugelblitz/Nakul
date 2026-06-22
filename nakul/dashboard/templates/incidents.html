@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Incident Detail{% endblock %}
+{% block page_title %}Incident Detail{% endblock %}
+
+{% block content %}
+{% if incident %}
+<div class="card" style="border-left: 4px solid {% if incident.severity == 'critical' %}var(--severity-critical){% elif incident.severity == 'warning' %}var(--severity-warning){% else %}var(--severity-info){% endif %};">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+    <span class="badge {{ incident.severity }}"><span class="status-dot pulse"></span>{{ incident.severity | upper }}</span>
+    <span class="badge {{ incident.state | default('new') }}">{{ incident.state | default('new') | upper }}</span>
+    <span class="badge {{ incident.category | default('system') }}">{{ incident.category | default('system') }}</span>
+    <span class="text-muted" style="font-size:0.8rem;">ID: {{ incident.id[:12] }}...</span>
+    <span class="text-muted" style="margin-left:auto;font-size:0.8rem;">{{ incident.timestamp[:19] if incident.timestamp else '' }}</span>
+  </div>
+
+  <h2 style="font-size:1.25rem;margin-bottom:16px;">{{ incident.summary | default('Incident') }}</h2>
+
+  <!-- Explanation -->
+  <div style="margin-bottom:20px;">
+    <h4 class="card-title" style="margin-bottom:8px;">What Happened</h4>
+    <p class="text-secondary" style="line-height:1.7;">{{ incident.explanation | default('No explanation available.') }}</p>
+  </div>
+
+  <!-- Affected entities -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;">
+    {% if incident.affected_account %}
+    <div class="card" style="padding:14px;">
+      <div class="card-title">Affected Account</div>
+      <div style="font-size:1rem;font-weight:600;margin-top:4px;">👤 {{ incident.affected_account }}</div>
+    </div>
+    {% endif %}
+    {% if incident.affected_ip %}
+    <div class="card" style="padding:14px;">
+      <div class="card-title">Source IP</div>
+      <div style="font-size:1rem;font-weight:600;margin-top:4px;">🌐 {{ incident.affected_ip }}</div>
+    </div>
+    {% endif %}
+    {% if incident.affected_service %}
+    <div class="card" style="padding:14px;">
+      <div class="card-title">Affected Service</div>
+      <div style="font-size:1rem;font-weight:600;margin-top:4px;">⚙️ {{ incident.affected_service }}</div>
+    </div>
+    {% endif %}
+    <div class="card" style="padding:14px;">
+      <div class="card-title">Confidence</div>
+      <div style="font-size:1rem;font-weight:600;margin-top:4px;">{{ "%.0f" | format((incident.confidence_score | default(0)) * 100) }}%</div>
+      <div class="progress-bar" style="margin-top:6px;">
+        <div class="progress-fill primary" style="width:{{ (incident.confidence_score | default(0)) * 100 }}%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Evidence -->
+  {% if incident.source_evidence %}
+  <div style="margin-bottom:20px;">
+    <h4 class="card-title" style="margin-bottom:8px;">Evidence</h4>
+    {% for ev in incident.source_evidence %}
+    <div class="evidence-block">{{ ev }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Logs Consulted -->
+  {% if incident.logs_consulted %}
+  <div style="margin-bottom:20px;">
+    <h4 class="card-title" style="margin-bottom:8px;">Logs Consulted</h4>
+    {% for log in incident.logs_consulted %}
+    <span class="badge info" style="margin:2px;">{{ log }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Remediation -->
+  {% if incident.suggested_remediation %}
+  <div style="margin-bottom:20px;">
+    <h4 class="card-title" style="margin-bottom:8px;">Recommended Action</h4>
+    <pre style="white-space:pre-wrap;line-height:1.7;">{{ incident.suggested_remediation }}</pre>
+  </div>
+  {% endif %}
+
+  <!-- Resolution Notes -->
+  {% if incident.resolution_notes %}
+  <div style="margin-bottom:20px;">
+    <h4 class="card-title" style="margin-bottom:8px;">Resolution Notes</h4>
+    <p class="text-secondary">{{ incident.resolution_notes }}</p>
+  </div>
+  {% endif %}
+
+  <!-- Actions -->
+  <div style="display:flex;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border-subtle);flex-wrap:wrap;">
+    {% if incident.state not in ['resolved', 'suppressed', 'false_positive'] %}
+    <button class="btn success" data-action="update-state" data-incident-id="{{ incident.id }}" data-state="acknowledged">✓ Acknowledge</button>
+    <button class="btn primary" data-action="update-state" data-incident-id="{{ incident.id }}" data-state="investigating">🔍 Investigating</button>
+    <button class="btn success" data-action="update-state" data-incident-id="{{ incident.id }}" data-state="resolved">✅ Resolve</button>
+    <button class="btn" data-action="update-state" data-incident-id="{{ incident.id }}" data-state="suppressed">🔇 Suppress</button>
+    <button class="btn" data-action="update-state" data-incident-id="{{ incident.id }}" data-state="false_positive">❌ False Positive</button>
+    {% else %}
+    <span class="badge success" style="padding:8px 16px;font-size:0.85rem;">{{ incident.state | replace('_', ' ') | title }}</span>
+    {% endif %}
+
+    <a href="/api/export/incidents?format=json" class="btn sm" style="margin-left:auto;">📥 Export JSON</a>
+    <a href="/api/export/incidents?format=csv" class="btn sm">📥 Export CSV</a>
+  </div>
+</div>
+{% else %}
+<div class="card">
+  <div class="empty-state">
+    <div class="empty-icon">🔍</div>
+    <h3>Incident Not Found</h3>
+    <p>The requested incident could not be found.</p>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

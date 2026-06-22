@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Nakul</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="card login-card">
+      <div class="brand">
+        <div class="brand-icon-large">N</div>
+        <h2>Welcome to Nakul</h2>
+        <p class="login-subtitle">Server Intelligence & Protection Platform</p>
+      </div>
+
+      {% if error %}
+      <div class="login-error">{{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="/api/login" id="login-form">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input type="text" id="username" name="username" class="form-input"
+                 placeholder="Enter your username" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-input"
+                 placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn primary" id="login-btn">
+          Sign In
+        </button>
+      </form>
+
+      <p style="text-align:center;margin-top:24px;font-size:0.75rem;color:var(--text-muted);">
+        Credentials are configured during installation.<br>
+        Check <code>/etc/nakul/nakul.yaml</code> for details.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

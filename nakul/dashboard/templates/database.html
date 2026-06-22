@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Database{% endblock %}
+{% block page_title %}Database Monitoring{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Recent Database Events</h3>
+  </div>
+  {% if events %}
+  <div class="table-container">
+    <table>
+      <thead><tr><th>Time</th><th>Severity</th><th>Message</th><th>Account</th><th>IP</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td class="mono" style="font-size:0.75rem;white-space:nowrap;">{{ e.timestamp[:19] if e.timestamp else '—' }}</td>
+          <td><span class="badge {{ e.severity }}">{{ e.severity }}</span></td>
+          <td class="truncate" style="max-width:400px;" title="{{ e.message }}">{{ e.message | truncate(120) }}</td>
+          <td>{{ e.account or '—' }}</td>
+          <td class="mono">{{ e.ip_address or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🗄️</div>
+    <h3>No Database Events</h3>
+    <p>Database monitoring events will appear here when MySQL/MariaDB log parsing is active.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Security{% endblock %}
+{% block page_title %}Security Events{% endblock %}
+
+{% block content %}
+{% if malware_events %}
+<div class="alert-banner critical" style="margin-bottom:20px;">
+  <span class="alert-icon">🚨</span>
+  <div>
+    <strong>Malware Detected</strong>
+    <p style="margin:4px 0 0;">{{ malware_events | length }} malware-related events found. Review immediately.</p>
+  </div>
+</div>
+{% endif %}
+
+<div class="content-grid">
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Security Events</h3></div>
+    {% if events %}
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Time</th><th>Severity</th><th>Message</th><th>IP</th></tr></thead>
+        <tbody>
+          {% for e in events %}
+          <tr>
+            <td class="mono" style="font-size:0.75rem;">{{ e.timestamp[:19] if e.timestamp else '—' }}</td>
+            <td><span class="badge {{ e.severity }}">{{ e.severity }}</span></td>
+            <td class="truncate" style="max-width:350px;">{{ e.message | truncate(120) }}</td>
+            <td class="mono">{{ e.ip_address or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">🛡️</div>
+      <h3>No Security Events</h3>
+      <p>Security events from CSF, Imunify360, and auth logs will appear here.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 class="card-title">Malware Detections</h3></div>
+    {% if malware_events %}
+    <div class="incident-list">
+      {% for e in malware_events %}
+      <div class="card incident-card critical" style="padding:12px;">
+        <div class="incident-header">
+          <span class="badge critical"><span class="status-dot pulse"></span> MALWARE</span>
+          <span class="text-muted" style="font-size:0.75rem;">{{ e.timestamp[:19] if e.timestamp else '' }}</span>
+        </div>
+        <div class="incident-summary">{{ e.message | truncate(200) }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">✅</div>
+      <h3>No Malware Detected</h3>
+      <p>No malware detections from Imunify360 or security scans.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

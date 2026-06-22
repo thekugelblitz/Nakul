@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Nakul{% endblock %} — Server Intelligence</title>
+  <meta name="description" content="Nakul Server Intelligence & Protection Platform — Real-time monitoring for cPanel/WHM hosting environments">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">N</div>
+        <div>
+          <h1>Nakul</h1>
+          <span class="version">v1.0.0</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-title">Overview</div>
+          <a href="/" class="nav-item" id="nav-summary">
+            <span class="nav-icon">📊</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/alerts" class="nav-item" id="nav-alerts">
+            <span class="nav-icon">🔔</span>
+            <span>Alerts</span>
+            <span class="nav-badge" id="alerts-nav-badge" style="display:none;">0</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Monitoring</div>
+          <a href="/services" class="nav-item" id="nav-services">
+            <span class="nav-icon">⚙️</span>
+            <span>Services</span>
+          </a>
+          <a href="/resources" class="nav-item" id="nav-resources">
+            <span class="nav-icon">📈</span>
+            <span>Resources</span>
+          </a>
+          <a href="/logs" class="nav-item" id="nav-logs">
+            <span class="nav-icon">📋</span>
+            <span>Logs</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">Analysis</div>
+          <a href="/database" class="nav-item" id="nav-database">
+            <span class="nav-icon">🗄️</span>
+            <span>Database</span>
+          </a>
+          <a href="/backups" class="nav-item" id="nav-backups">
+            <span class="nav-icon">💾</span>
+            <span>Backups</span>
+          </a>
+          <a href="/security" class="nav-item" id="nav-security">
+            <span class="nav-icon">🛡️</span>
+            <span>Security</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-title">System</div>
+          <a href="/settings" class="nav-item" id="nav-settings">
+            <span class="nav-icon">⚡</span>
+            <span>Settings</span>
+          </a>
+        </div>
+      </nav>
+
+      <div style="padding: 16px 12px; border-top: 1px solid var(--border-subtle);">
+        <a href="#" class="nav-item" data-action="logout" id="nav-logout">
+          <span class="nav-icon">🚪</span>
+          <span>Logout</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <header class="top-bar">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button id="menu-toggle" class="btn sm" style="display:none;">☰</button>
+          <h2 class="top-bar-title">{% block page_title %}Dashboard{% endblock %}</h2>
+        </div>
+        <div class="top-bar-actions">
+          <div class="health-indicator {{ data.server_health if data else 'unknown' }}" id="server-health">
+            <span class="health-dot"></span>
+            <span class="health-text">{{ (data.server_health if data else 'Loading') | capitalize }}</span>
+          </div>
+          <div class="user-menu">
+            <span>👤</span>
+            <span>{{ user | default('admin') }}</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

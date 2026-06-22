@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Services{% endblock %}
+{% block page_title %}Service Health{% endblock %}
+
+{% block content %}
+<div class="service-grid">
+  {% if services %}
+    {% for svc in services %}
+    <div class="card service-card">
+      <div class="service-header">
+        <span class="service-name">{{ svc.display_name or svc.name }}</span>
+        {% if svc.running %}
+          <span class="badge success"><span class="status-dot pulse"></span> Running</span>
+        {% elif svc.installed %}
+          <span class="badge error"><span class="status-dot"></span> Stopped</span>
+        {% else %}
+          <span class="badge not_installed">Not Installed</span>
+        {% endif %}
+      </div>
+
+      <div class="service-detail">
+        <span class="detail-label">Health</span>
+        <span class="badge {{ svc.health }}">{{ svc.health | replace('_', ' ') | title }}</span>
+      </div>
+
+      <div class="service-detail">
+        <span class="detail-label">Version</span>
+        <span class="detail-value mono">{{ svc.version or 'N/A' }}</span>
+      </div>
+
+      {% if svc.pid %}
+      <div class="service-detail">
+        <span class="detail-label">PID</span>
+        <span class="detail-value mono">{{ svc.pid }}</span>
+      </div>
+      {% endif %}
+
+      <div class="service-detail">
+        <span class="detail-label">Last Check</span>
+        <span class="detail-value">{{ svc.last_check[:19] if svc.last_check else 'Never' }}</span>
+      </div>
+
+      {% if svc.config_path %}
+      <div class="service-detail">
+        <span class="detail-label">Config</span>
+        <span class="detail-value mono truncate" style="max-width:160px;" title="{{ svc.config_path }}">{{ svc.config_path }}</span>
+      </div>
+      {% endif %}
+
+      {% if svc.last_error %}
+      <div class="alert-banner critical" style="margin-top:12px;padding:10px;">
+        <span class="alert-icon">⚠️</span>
+        <span style="font-size:0.78rem;">{{ svc.last_error | truncate(150) }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="card" style="grid-column: 1/-1;">
+      <div class="empty-state">
+        <div class="empty-icon">⚙️</div>
+        <h3>No Services Detected Yet</h3>
+        <p>Service detection will run on the next scan cycle. Services like LiteSpeed, MySQL, Imunify360, CSF, and more will appear here once detected.</p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

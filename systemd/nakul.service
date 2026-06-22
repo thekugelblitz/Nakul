@@ -1,0 +1,42 @@
+[Unit]
+Description=Nakul Server Intelligence & Protection Platform
+Documentation=https://github.com/nakul-project/nakul
+After=network.target mysqld.service mariadb.service
+
+[Service]
+Type=exec
+User=nakul
+Group=nakul
+WorkingDirectory=/opt/nakul
+Environment=NAKUL_CONFIG=/etc/nakul/nakul.yaml
+ExecStart=/opt/nakul/venv/bin/python -m nakul.main --config /etc/nakul/nakul.yaml
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+
+# Watchdog
+WatchdogSec=120
+NotifyAccess=all
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/nakul /var/log/nakul
+ReadOnlyPaths=/opt/nakul /etc/nakul /var/log /etc /usr/local/cpanel /var/cpanel
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+
+# Resource limits
+LimitNOFILE=65535
+LimitNPROC=4096
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nakul
+
+[Install]
+WantedBy=multi-user.target

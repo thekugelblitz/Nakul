@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Server Overview{% endblock %}
+
+{% block content %}
+<!-- Stat Cards -->
+<div class="stats-grid">
+  <div class="card stat-card primary">
+    <div class="stat-icon primary">📊</div>
+    <div class="card-title">CPU Usage</div>
+    <div class="card-value" id="cpu-value">{{ "%.1f" | format(data.system.cpu_percent | default(0)) }}%</div>
+    <div class="progress-bar">
+      <div class="progress-fill {% if data.system.cpu_percent|default(0) > 90 %}danger{% elif data.system.cpu_percent|default(0) > 75 %}warning{% else %}success{% endif %}"
+           id="cpu-progress" style="width: {{ data.system.cpu_percent | default(0) }}%"></div>
+    </div>
+    <div class="card-subtitle">{{ data.system.cpu_count | default(1) }} cores</div>
+  </div>
+
+  <div class="card stat-card success">
+    <div class="stat-icon success">🧠</div>
+    <div class="card-title">Memory Usage</div>
+    <div class="card-value" id="memory-value">{{ "%.1f" | format(data.system.memory_percent | default(0)) }}%</div>
+    <div class="progress-bar">
+      <div class="progress-fill {% if data.system.memory_percent|default(0) > 90 %}danger{% elif data.system.memory_percent|default(0) > 75 %}warning{% else %}success{% endif %}"
+           id="memory-progress" style="width: {{ data.system.memory_percent | default(0) }}%"></div>
+    </div>
+    <div class="card-subtitle">{{ "%.0f" | format(data.system.memory_used_mb | default(0)) }} / {{ "%.0f" | format(data.system.memory_total_mb | default(0)) }} MB</div>
+  </div>
+
+  <div class="card stat-card warning">
+    <div class="stat-icon warning">💿</div>
+    <div class="card-title">Disk Usage</div>
+    <div class="card-value" id="disk-value">{{ "%.1f" | format(data.system.disk_percent | default(0)) }}%</div>
+    <div class="progress-bar">
+      <div class="progress-fill {% if data.system.disk_percent|default(0) > 90 %}danger{% elif data.system.disk_percent|default(0) > 75 %}warning{% else %}success{% endif %}"
+           id="disk-progress" style="width: {{ data.system.disk_percent | default(0) }}%"></div>
+    </div>
+    <div class="card-subtitle">{{ "%.1f" | format(data.system.disk_used_gb | default(0)) }} / {{ "%.1f" | format(data.system.disk_total_gb | default(0)) }} GB</div>
+  </div>
+
+  <div class="card stat-card primary">
+    <div class="stat-icon primary">⚡</div>
+    <div class="card-title">Load Average</div>
+    <div class="card-value" id="load-value">{{ "%.2f" | format(data.system.load_1 | default(0)) }}</div>
+    <div class="card-subtitle">5m: {{ "%.2f" | format(data.system.load_5 | default(0)) }} · 15m: {{ "%.2f" | format(data.system.load_15 | default(0)) }}</div>
+  </div>
+
+  <div class="card stat-card danger">
+    <div class="stat-icon danger">🔔</div>
+    <div class="card-title">Active Alerts</div>
+    <div class="card-value" id="alerts-total">{{ data.alerts.total | default(0) }}</div>
+    <div class="card-subtitle">
+      <span class="text-critical">{{ data.alerts.critical | default(0) }} critical</span> ·
+      <span class="text-warning">{{ data.alerts.warning | default(0) }} warning</span>
+    </div>
+  </div>
+
+  <div class="card stat-card success">
+    <div class="stat-icon success">📋</div>
+    <div class="card-title">Events (1h)</div>
+    <div class="card-value" id="events-count">{{ data.events_last_hour | default(0) }}</div>
+    <div class="card-subtitle">{{ data.incidents.active | default(0) }} active incidents</div>
+  </div>
+</div>
+
+<!-- Two Column Layout -->
+<div class="content-grid">
+  <!-- Recent Incidents -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Recent Incidents</h3>
+      <a href="/alerts" class="btn sm">View All →</a>
+    </div>
+    <div class="incident-list">
+      {% if data.incidents.recent %}
+        {% for inc in data.incidents.recent[:5] %}
+        <a href="/incidents/{{ inc.id }}" class="incident-card card {{ inc.severity }}" style="padding:14px;">
+          <div class="incident-header">
+            <span class="badge {{ inc.severity }}">
+              <span class="status-dot pulse"></span>
+              {{ inc.severity | upper }}
+            </span>
+            <span class="badge {{ inc.state | default('new') }}" style="margin-left:4px;">{{ inc.state | default('new') }}</span>
+          </div>
+          <div class="incident-summary">{{ inc.summary | default('No summary') | truncate(120) }}</div>
+          <div class="incident-meta">
+            <span>{{ inc.category | default('system') }}</span>
+            <span>{{ inc.timestamp[:16] if inc.timestamp else 'N/A' }}</span>
+            {% if inc.affected_account %}<span>👤 {{ inc.affected_account }}</span>{% endif %}
+            {% if inc.affected_ip %}<span>🌐 {{ inc.affected_ip }}</span>{% endif %}
+          </div>
+        </a>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <h3>No Recent Incidents</h3>
+          <p>The server is operating normally. No incidents to report.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Service Status -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Service Status</h3>
+      <a href="/services" class="btn sm">Details →</a>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Status</th>
+            <th>Health</th>
+            <th>Version</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if data.services %}
+            {% for svc in data.services %}
+            <tr>
+              <td style="font-weight:500;color:var(--text-primary);">{{ svc.display_name or svc.name }}</td>
+              <td>
+                {% if svc.running %}
+                  <span class="badge success"><span class="status-dot pulse"></span> Running</span>
+                {% elif svc.installed %}
+                  <span class="badge error"><span class="status-dot"></span> Stopped</span>
+                {% else %}
+                  <span class="badge not_installed">Not Installed</span>
+                {% endif %}
+              </td>
+              <td><span class="badge {{ svc.health }}">{{ svc.health | replace('_', ' ') | title }}</span></td>
+              <td class="mono text-muted" style="font-size:0.75rem;">{{ svc.version or '—' }}</td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="4" class="text-muted" style="text-align:center;padding:24px;">
+                No service data yet. Services will be detected on first scan.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
